@@ -10,5 +10,6 @@ public interface NPC {
     CompletableFuture<Void> setInstance(Instance instance);
     boolean addViewer(Player player);
     Instance getInstance();
-    PlayerInfoUpdatePacket getAddPlayerInfoPacket();
+    PlayerInfoUpdatePacket getPlayerInfoUpdatePacket();
+    public void remakeInfoUpdatePacket();
 }

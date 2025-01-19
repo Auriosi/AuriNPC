@@ -1,3 +1,4 @@
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventNode;
@@ -7,7 +8,7 @@ import net.minestom.server.event.trait.PlayerEvent;
 import java.util.ArrayList;
 
 public class AuriNPC {
-    private static final AuriNPC INSTANCE = null;
+    private static AuriNPC INSTANCE = null;
 
     private final EventNode<PlayerEvent> playerEventNode;
     private final ArrayList<NPC> npcs = new ArrayList<>();
@@ -17,14 +18,18 @@ public class AuriNPC {
         playerEventNode.addListener(PlayerSpawnEvent.class, event -> {
             Player player = event.getPlayer();
             npcs.forEach(npc -> {
+                if (npc.getInstance() != player.getInstance()) {
+                    return;
+                }
+                player.sendPacket(npc.getPlayerInfoUpdatePacket());
                 npc.addViewer(player);
-
             });
         });
+        MinecraftServer.getGlobalEventHandler().addChild(playerEventNode);
     }
 
-    public void init() {
-        AuriNPC lib = new AuriNPC();
+    public static void init() {
+        INSTANCE = new AuriNPC();
     }
 
     public static AuriNPC getInstance() {
