@@ -1,5 +1,4 @@
 import net.kyori.adventure.text.Component;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.*;
 import net.minestom.server.instance.Instance;
@@ -217,20 +216,20 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
 
     public void remakeInfoUpdatePacket() {
         this.playerInfoUpdatePacket = new PlayerInfoUpdatePacket(
-                PlayerInfoUpdatePacket.Action.ADD_PLAYER,
-                new PlayerInfoUpdatePacket.Entry(
-                        getUuid(),
-                        Objects.requireNonNull(getCustomName()).toString(),
-                        List.of(
-                                new PlayerInfoUpdatePacket.Property("textures", skinValue, skinSignature) // The client should be able to handle a blank skin property
-                        ),
-                        this.listed,
-                        0,
-                        GameMode.CREATIVE,
-                        getCustomName(),
-                        null,
-                        0
-                )
+            PlayerInfoUpdatePacket.Action.ADD_PLAYER,
+            new PlayerInfoUpdatePacket.Entry(
+                getUuid(),
+                Objects.requireNonNull(getCustomName()).toString(),
+                List.of(
+                        new PlayerInfoUpdatePacket.Property("textures", skinValue, skinSignature) // The client should be able to handle a blank skin property
+                ),
+                this.listed,
+                0,
+                GameMode.CREATIVE,
+                getCustomName(),
+                null,
+                0
+            )
         );
         getInstance().getPlayers().forEach(player -> player.sendPacket(playerInfoUpdatePacket));
     }
