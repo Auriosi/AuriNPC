@@ -40,4 +40,9 @@ public class AuriNPC {
         npcs.add(npc);
         npc.getInstance().getPlayers().forEach(npc::addViewer);
     }
+
+    public void removeNPC(NPC npc) {
+        npcs.remove(npc);
+        npc.getInstance().getPlayers().forEach(npc::removeViewer);
+    }
 }

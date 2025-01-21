@@ -1,4 +1,5 @@
 import net.kyori.adventure.text.Component;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.*;
 import net.minestom.server.instance.Instance;
@@ -17,8 +18,6 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
     private boolean listed;
     private long lookRangeSquared;
     private double maxHealth;
-    private double health;
-    private boolean invulnerable;
     private boolean respawns;
     private long respawnDelay;
 
@@ -26,6 +25,7 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
 
     protected LivingStaticNPC(
             @NotNull UUID uuid,
+            @NotNull Instance instance,
             @NotNull Pos position,
             @NotNull Component customName,
             @NotNull String skinSignature,
@@ -34,47 +34,48 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
             boolean listed,
             long lookRange,
             double maxHealth,
-            double health,
+            float health,
             boolean invulnerable,
             boolean respawns,
             long respawnDelay
     ) {
         // Constructor for full initial customization
         super(EntityType.PLAYER, uuid);
-        this.position = position;
+        this.setInstance(instance, position);
         this.skinSignature = skinSignature;
         this.skinValue = skinValue;
         this.lookAtPlayers = lookAtPlayers;
         this.listed = listed;
         this.lookRangeSquared = lookRange;
-        this.maxHealth = maxHealth;
-        this.health = health;
-        this.invulnerable = invulnerable;
+        this.setMaxHealth(maxHealth);
+        this.setHealth(health);
+        this.setInvulnerable(invulnerable);
         this.respawns = respawns;
         this.respawnDelay = respawnDelay;
         this.setCustomName(customName);
         this.setCustomNameVisible(true);
         this.playerInfoUpdatePacket = new PlayerInfoUpdatePacket(
-                PlayerInfoUpdatePacket.Action.ADD_PLAYER,
-                new PlayerInfoUpdatePacket.Entry(
-                        uuid,
-                        customName.examinableName(),
-                        List.of(
-                                new PlayerInfoUpdatePacket.Property("textures", skinValue, skinSignature) // The client should be able to handle a blank skin property
-                        ),
-                        this.listed,
-                        0,
-                        GameMode.CREATIVE,
-                        customName,
-                        null,
-                        0
-                )
+            PlayerInfoUpdatePacket.Action.ADD_PLAYER,
+            new PlayerInfoUpdatePacket.Entry(
+                uuid,
+                customName.examinableName(),
+                List.of(
+                    new PlayerInfoUpdatePacket.Property("textures", skinValue, skinSignature) // The client should be able to handle a blank skin property
+                ),
+                this.listed,
+                0,
+                GameMode.CREATIVE,
+                customName,
+                null,
+                0
+            )
         );
     }
 
     public static class Builder {
         // Required parameters
         private final UUID uuid;
+        private final Instance instance;
         private final Pos position;
         private final double maxHealth;
 
@@ -85,19 +86,20 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
         private boolean lookAtPlayers = true;
         private boolean listed = true;
         private long lookRange = 10;
-        private double health = 1;
+        private float health = 1;
         private boolean invulnerable = false;
         private boolean respawns = false;
         private long respawnDelay = 0;
 
-        public Builder(@NotNull UUID uuid, @NotNull Pos position, double maxHealth) {
+        public Builder(@NotNull UUID uuid, @NotNull Instance instance, @NotNull Pos position, double maxHealth) {
             this.uuid = uuid;
+            this.instance = instance;
             this.position = position;
             this.maxHealth = maxHealth;
         }
 
         public LivingStaticNPC build() {
-            return new LivingStaticNPC(uuid, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange, maxHealth, health, invulnerable, respawns, respawnDelay);
+            return new LivingStaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange, maxHealth, health, invulnerable, respawns, respawnDelay);
         }
 
         public LivingStaticNPC.Builder customName(Component customName) {
@@ -132,7 +134,7 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
             return this;
         }
 
-        public LivingStaticNPC.Builder health(double health) {
+        public LivingStaticNPC.Builder health(float health) {
             this.health = health;
             return this;
         }
@@ -175,9 +177,38 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
 
     @Override
     public CompletableFuture<Void> setInstance(@NotNull Instance instance) {
+        AuriNPC.getInstance().removeNPC(this);
         CompletableFuture<Void> future = super.setInstance(instance);
         future.thenRun(() -> AuriNPC.getInstance().addNPC(this));
         return future;
+    }
+
+    @Override
+    public void remove() {
+        super.remove();
+        AuriNPC.getInstance().removeNPC(this);
+    }
+
+    @Override
+    public void kill() {
+        super.kill();
+        if (respawns) {
+            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    Thread.sleep(respawnDelay);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            });
+            future.thenRun(() -> {
+                refreshIsDead(false);
+                setPose(EntityPose.STANDING);
+                setHealth((float) maxHealth);
+            });
+        } else {
+            AuriNPC.getInstance().removeNPC(this);
+        }
     }
 
     public PlayerInfoUpdatePacket getPlayerInfoUpdatePacket() {

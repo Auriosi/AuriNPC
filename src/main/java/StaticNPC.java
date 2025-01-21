@@ -21,6 +21,7 @@ public class StaticNPC extends Entity implements NPC {
 
     protected StaticNPC(
         @NotNull UUID uuid,
+        @NotNull Instance instance,
         @NotNull Pos position,
         @NotNull Component customName,
         @NotNull String skinSignature,
@@ -31,7 +32,7 @@ public class StaticNPC extends Entity implements NPC {
     ) {
         // Constructor for full initial customization
         super(EntityType.PLAYER, uuid);
-        this.position = position;
+        this.setInstance(instance, position);
         this.skinSignature = skinSignature;
         this.skinValue = skinValue;
         this.lookAtPlayers = lookAtPlayers;
@@ -60,6 +61,7 @@ public class StaticNPC extends Entity implements NPC {
     public static class Builder {
         // Required parameters
         private final UUID uuid;
+        private final Instance instance;
         private final Pos position;
 
         // Optional parameters
@@ -70,13 +72,14 @@ public class StaticNPC extends Entity implements NPC {
         private boolean listed = true;
         private long lookRange = 10;
 
-        public Builder(@NotNull UUID uuid, @NotNull Pos position) {
+        public Builder(@NotNull UUID uuid, @NotNull Instance instance, @NotNull Pos position) {
             this.uuid = uuid;
             this.position = position;
+            this.instance = instance;
         }
 
         public StaticNPC build() {
-            return new StaticNPC(uuid, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange);
+            return new StaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange);
         }
 
         public StaticNPC.Builder customName(Component customName) {
@@ -137,6 +140,12 @@ public class StaticNPC extends Entity implements NPC {
         CompletableFuture<Void> future = super.setInstance(instance);
         future.thenRun(() -> AuriNPC.getInstance().addNPC(this));
         return future;
+    }
+
+    @Override
+    public void remove() {
+        super.remove();
+        AuriNPC.getInstance().removeNPC(this);
     }
 
     public PlayerInfoUpdatePacket getPlayerInfoUpdatePacket() {

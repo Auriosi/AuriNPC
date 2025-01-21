@@ -9,6 +9,7 @@ public interface NPC {
     String getSkinValue();
     CompletableFuture<Void> setInstance(Instance instance);
     boolean addViewer(Player player);
+    boolean removeViewer(Player player);
     Instance getInstance();
     PlayerInfoUpdatePacket getPlayerInfoUpdatePacket();
     public void remakeInfoUpdatePacket();
