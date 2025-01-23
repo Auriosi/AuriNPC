@@ -1,7 +1,11 @@
 import net.kyori.adventure.text.Component;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.*;
+import net.minestom.server.event.Event;
+import net.minestom.server.event.EventNode;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket;
 import net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket;
 import org.jetbrains.annotations.NotNull;
 
@@ -9,6 +13,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class StaticNPC extends Entity implements NPC {
     private String skinSignature;
@@ -28,7 +33,8 @@ public class StaticNPC extends Entity implements NPC {
         @NotNull String skinValue,
         boolean lookAtPlayers,
         boolean listed,
-        long lookRange
+        long lookRange,
+        @NotNull Consumer<ClientInteractEntityPacket> interactListener
     ) {
         // Constructor for full initial customization
         super(EntityType.PLAYER, uuid);
@@ -56,6 +62,11 @@ public class StaticNPC extends Entity implements NPC {
                 0
             )
         );
+        MinecraftServer.getPacketListenerManager().setPlayListener(ClientInteractEntityPacket.class, (packet, player) -> {
+            if (packet.targetId() == this.getEntityId()) {
+                interactListener.accept(packet);
+            }
+        });
     }
 
     public static class Builder {
@@ -71,6 +82,7 @@ public class StaticNPC extends Entity implements NPC {
         private boolean lookAtPlayers = true;
         private boolean listed = true;
         private long lookRange = 10;
+        private Consumer<ClientInteractEntityPacket> interactListener = packet -> {};
 
         public Builder(@NotNull UUID uuid, @NotNull Instance instance, @NotNull Pos position) {
             this.uuid = uuid;
@@ -79,7 +91,12 @@ public class StaticNPC extends Entity implements NPC {
         }
 
         public StaticNPC build() {
-            return new StaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange);
+            return new StaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange, interactListener);
+        }
+
+        public StaticNPC.Builder onInteract(Consumer<ClientInteractEntityPacket> interactListener) {
+            this.interactListener = interactListener;
+            return this;
         }
 
         public StaticNPC.Builder customName(Component customName) {

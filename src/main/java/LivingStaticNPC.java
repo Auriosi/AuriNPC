@@ -1,7 +1,9 @@
 import net.kyori.adventure.text.Component;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.*;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket;
 import net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket;
 import org.jetbrains.annotations.NotNull;
 
@@ -9,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class LivingStaticNPC extends LivingEntity implements NPC {
     private String skinSignature;
@@ -36,7 +39,8 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
             float health,
             boolean invulnerable,
             boolean respawns,
-            long respawnDelay
+            long respawnDelay,
+            @NotNull Consumer<ClientInteractEntityPacket> interactListener
     ) {
         // Constructor for full initial customization
         super(EntityType.PLAYER, uuid);
@@ -69,6 +73,11 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
                 0
             )
         );
+        MinecraftServer.getPacketListenerManager().setPlayListener(ClientInteractEntityPacket.class, (packet, player) -> {
+            if (packet.targetId() == this.getEntityId()) {
+                interactListener.accept(packet);
+            }
+        });
     }
 
     public static class Builder {
@@ -89,6 +98,7 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
         private boolean invulnerable = false;
         private boolean respawns = false;
         private long respawnDelay = 0;
+        private Consumer<ClientInteractEntityPacket> interactListener = packet -> {};
 
         public Builder(@NotNull UUID uuid, @NotNull Instance instance, @NotNull Pos position, double maxHealth) {
             this.uuid = uuid;
@@ -98,7 +108,12 @@ public class LivingStaticNPC extends LivingEntity implements NPC {
         }
 
         public LivingStaticNPC build() {
-            return new LivingStaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange, maxHealth, health, invulnerable, respawns, respawnDelay);
+            return new LivingStaticNPC(uuid, instance, position, customName, skinSignature, skinValue, lookAtPlayers, listed, lookRange, maxHealth, health, invulnerable, respawns, respawnDelay, interactListener);
+        }
+
+        public LivingStaticNPC.Builder onInteract(Consumer<ClientInteractEntityPacket> interactListener) {
+            this.interactListener = interactListener;
+            return this;
         }
 
         public LivingStaticNPC.Builder customName(Component customName) {

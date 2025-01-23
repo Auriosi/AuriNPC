@@ -1,5 +1,6 @@
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerSpawnEvent;
@@ -44,5 +45,13 @@ public class AuriNPC {
     public void removeNPC(NPC npc) {
         npcs.remove(npc);
         npc.getInstance().getPlayers().forEach(npc::removeViewer);
+    }
+
+    public ArrayList<NPC> getNPCs() {
+        return npcs;
+    }
+
+    public EventNode<PlayerEvent> getPlayerEventNode() {
+        return playerEventNode;
     }
 }
